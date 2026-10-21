@@ -91,6 +91,21 @@ def sdf_records(sdf_path, out_path):
     write_json(out_path, {"records": records})
 
 
+def clip(pdf_path, page_number, out_path, x0, y0, x1, y1, dpi):
+    document = pymupdf.open(pdf_path)
+    page = document[int(page_number) - 1]
+    rect = None
+    if all(value is not None for value in (x0, y0, x1, y1)):
+        rect = pymupdf.Rect(float(x0), float(y0), float(x1), float(y1))
+    pixmap = page.get_pixmap(dpi=int(dpi), clip=rect)
+    pixmap.save(out_path)
+    write_json(out_path + ".json", {
+        "width": pixmap.width,
+        "height": pixmap.height,
+        "page": int(page_number),
+    })
+
+
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -113,6 +128,13 @@ def main():
     sdf_parser.add_argument("sdf")
     sdf_parser.add_argument("out")
 
+    clip_parser = subparsers.add_parser("clip")
+    clip_parser.add_argument("pdf")
+    clip_parser.add_argument("page")
+    clip_parser.add_argument("out")
+    clip_parser.add_argument("--box", nargs=4, type=float, default=None)
+    clip_parser.add_argument("--dpi", default="300")
+
     args = parser.parse_args()
     try:
         if args.command == "text":
@@ -123,6 +145,9 @@ def main():
             render(args.pdf, args.page, args.out, args.dpi)
         elif args.command == "sdf":
             sdf_records(args.sdf, args.out)
+        elif args.command == "clip":
+            box = args.box or [None, None, None, None]
+            clip(args.pdf, args.page, args.out, *box, args.dpi)
     except Exception as error:  # noqa: BLE001 - report a clean message to Node
         print(str(error), file=sys.stderr)
         raise SystemExit(1)

@@ -1,5 +1,7 @@
 # Local Python environment (created by scripts/setup-python.ps1)
 vendor/venv/
+# Local OCR binary (created by scripts/setup-osra.ps1)
+vendor/osra/
 
 # Node
 node_modules/

@@ -1,12 +1,14 @@
 # ChemDraw Bridge · 中文操作说明
 
-这个插件把化合物身份或文献结构变成**可直接编辑的 ChemDraw 源文件**，目前有四个工具：
+这个插件把化合物身份或文献结构变成**可直接编辑的 ChemDraw 源文件**，目前有六个工具：
 
 | 工具 | 用途 |
 | --- | --- |
 | `search_compounds` | 名称模糊搜索，返回候选（CID、CAS、分子式、来源、匹配度） |
 | `import_scifinder` | 读取登录 SciFinder 后导出的 SDF/CSV，返回结构候选 |
+| `recognize_image` | 对没有名称的结构图做识图，返回 SMILES 候选 |
 | `draw_from_identifier` | 已知 **CAS 号 / 英文名 / CID / SMILES**，生成结构 |
+| `draw_reaction` | 由反应物/产物 SMILES 生成一步反应式草稿 |
 | `draw_from_paper` | 给一篇**论文或补充材料 PDF**和化合物编号（如 `3a`），从文献里提取结构 |
 
 输出文件：
@@ -67,6 +69,31 @@ SciFinder 的网页 API 需要 OAuth/ELN 授权，返回的是 SciFinder 网页�
 5. 用 `draw_from_identifier(identifier="SMILES:<smiles>")` 生成，CSV 已解析出 PubChem CID 时也可用 `CID:<cid>`。
 
 支持 `.sdf`、`.csv`、`.tsv`、`.txt`。SDF 用 RDKit 读取，ChemDraw 生成后再核对 CDXML，不依赖名称查库。
+
+### 识图与反应式
+
+没有 IUPAC 名称的结构图，可以先裁剪成清晰图片再识图：
+
+```text
+recognize_image(image_path="E:\\figs\\compound.png")
+recognize_image(pdf_path="E:\\paper.pdf", page=5, box=[100, 200, 360, 430])
+```
+
+OSRA 识别后用 RDKit 校验，返回 SMILES/分子式候选。**这是候选，不是已确认的身份**：手性、电荷、同位素和缩写基团都可能识别错；`PhthN`、`MQ`、`Boc` 这类缩写无法从像素还原，工具会拒绝而不是猜。确认后再用 `draw_from_identifier(identifier="SMILES:<smiles>")` 生成。
+
+有一组确定的反应物/产物 SMILES 时，可以画一步反应式草稿：
+
+```text
+draw_reaction(
+  reactants=["CCO"],
+  products=["CC=O"],
+  conditions="Pd(OAc)2, 80 °C",
+  yield_text="82%",
+  also_cdx=true
+)
+```
+
+箭头、条件、收率会放进同一个 ChemDraw 文件；方向、化学计量和条件仍需人工核对。
 
 ### 输入规则
 
@@ -237,7 +264,8 @@ draw_from_paper(
 
 ## 7. 限制
 
-- **纯图片、没有 IUPAC 名**的化合物会被拒绝。像 `PhthN`、`MQ`、`Boc` 这种缩写结构，OCR 无法可靠还原，插件不会猜。
+- **纯图片、没有 IUPAC 名**的化合物可以用 `recognize_image` 出候选，但结果必须人工核对；像 `PhthN`、`MQ`、`Boc` 这种缩写结构 OCR 无法可靠还原，工具会拒绝而不是猜。
+- `draw_reaction` 输出的是排版草稿，箭头方向、条件、化学计量和产物需要人工核对。
 - 有机金属配合物（如二茂铁）原子组成正确，但 ChemDraw 不会自动补金属–环配位键，需要手动加。
 - PubChem 没有 SMILES 的记录（某些聚合物、混合物、材料）无法生成。
 - 自动排版可直接用于论文，但个别大分子的环角、取代基方向可能还需要手动整理。
@@ -316,7 +344,13 @@ node E:\ds\dsh-plugin-chemdraw-bridge\tools\cli.mjs "CID:2244" --name aspirin
 
 4. 确认 `chemdraw-bridge` 插件行已启用。
 
-`vendor/venv` 不会提交到仓库，由 `scripts/setup-python.ps1` 自动创建。
+5. 需要识图时，再安装本地 OCR 组件：
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\setup-osra.ps1
+   ```
+
+`vendor/venv` 和 `vendor/osra` 不会提交到仓库，由 setup 脚本创建。
 
 ## 12. 环境要求
 
@@ -329,3 +363,7 @@ node E:\ds\dsh-plugin-chemdraw-bridge\tools\cli.mjs "CID:2244" --name aspirin
   powershell -ExecutionPolicy Bypass -File scripts\setup-python.ps1
   ```
   它会在 `vendor/venv` 创建环境并安装 `requirements.txt`。
+- 识图功能需要 OSRA；首次使用运行：
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File scripts\setup-osra.ps1
+  ```

@@ -21,6 +21,8 @@ import { generateFromSmiles } from './lib/generate.js'
 import { runLiterature } from './lib/literature.js'
 import { findCandidates } from './lib/search.js'
 import { importScifinder } from './lib/scifinder.js'
+import { recognizeImage } from './lib/vision.js'
+import { drawReaction } from './lib/reaction.js'
 
 export const name = 'chemdraw-bridge'
 export const inject = ['tools']
@@ -115,7 +117,42 @@ const SEARCH_OUTPUT = {
           exact: { type: 'boolean' },
           sources: { type: 'array', items: { type: 'string' } },
           smiles: { type: 'string' },
+          inchiKey: { type: 'string' },
         },
+      },
+    },
+    message: { type: 'string' },
+  },
+}
+
+const REACTION_OUTPUT = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['ok', 'files', 'reaction', 'message'],
+  properties: {
+    ok: { type: 'boolean' },
+    files: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['path', 'format', 'bytes'],
+        properties: {
+          path: { type: 'string' },
+          format: { type: 'string' },
+          bytes: { type: 'integer' },
+        },
+      },
+    },
+    reaction: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['reactants', 'products', 'conditions', 'yield'],
+      properties: {
+        reactants: { type: 'array', items: { type: 'string' } },
+        products: { type: 'array', items: { type: 'string' } },
+        conditions: { type: 'string' },
+        yield: { type: 'string' },
       },
     },
     message: { type: 'string' },
@@ -646,6 +683,175 @@ export function apply(ctx, config) {
           ? 'SciFinder 导出中没有可读结构；请确认导出为 SDF 或带 CAS 的 CSV。'
           : `读取到 ${mapped.length} 个结构。请让操作者选择，然后用 SMILES:<smiles> 调用 draw_from_identifier。`,
       }
+    },
+  })
+
+  ctx.tools.register({
+    name: 'recognize_image',
+    description:
+      'Recognize chemical structures in a figure image (or a PDF region) with OSRA, validate every SMILES with RDKit, and return candidates. Use this for compounds in a paper that have no printed IUPAC name. The result is a candidate that the operator must review; abbreviated groups (PhthN, MQ, Boc labels) and low-resolution images are expected to fail. After confirmation, draw it with draw_from_identifier(identifier="SMILES:<smiles>").',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        image_path: {
+          type: 'string',
+          description: 'Path to a PNG/JPEG/TIFF crop of the structure. Use a tight crop for best results.',
+        },
+        pdf_path: {
+          type: 'string',
+          description: 'Path to a PDF; use with page and optional box instead of image_path.',
+        },
+        page: {
+          type: 'integer',
+          minimum: 1,
+          description: 'PDF page number, 1-based. Default 1.',
+        },
+        box: {
+          type: 'array',
+          minItems: 4,
+          maxItems: 4,
+          items: { type: 'number' },
+          description: 'Optional PDF crop box [x0,y0,x1,y1] in PDF points.',
+        },
+        limit: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 8,
+          description: 'Maximum candidates; default 5.',
+        },
+      },
+    },
+    output: {
+      schema: SEARCH_OUTPUT,
+      render: (_args, value) => {
+        const candidates = Array.isArray(value?.candidates) ? value.candidates : []
+        if (candidates.length === 0) {
+          return [{ type: 'text', text: value?.message ?? '没有识别出结构。' }]
+        }
+        const lines = [
+          `图像识别候选（${candidates.length} 个，必须人工核对）：`,
+          ...candidates.map((candidate, index) => `${index + 1}. ${candidate.formula} — ${candidate.smiles}`),
+          '',
+          '确认后用 draw_from_identifier(identifier="SMILES:<smiles>") 生成 ChemDraw。',
+        ]
+        return [{ type: 'text', text: lines.join('\n') }]
+      },
+    },
+    timeoutMs: 180_000,
+    isConcurrencySafe: () => true,
+    async execute(args, exec) {
+      const imagePath = String(args?.image_path ?? '').trim()
+      const pdfPath = String(args?.pdf_path ?? '').trim()
+      if (!imagePath && !pdfPath) throw new Error('请提供 image_path，或 pdf_path + page + box。')
+      const limit = Number.isFinite(args?.limit) ? Math.min(8, Math.max(1, Math.round(args.limit))) : 5
+      const candidates = await recognizeImage({
+        imagePath: imagePath || undefined,
+        pdfPath: pdfPath || undefined,
+        page: Number.isFinite(args?.page) ? Math.round(args.page) : 1,
+        box: Array.isArray(args?.box) ? args.box : undefined,
+        pythonPath: defaults.pythonPath,
+        signal: exec.signal,
+      })
+      const mapped = candidates.slice(0, limit).map((candidate) => ({
+        cid: candidate.cid,
+        name: candidate.name,
+        cas: candidate.cas,
+        formula: candidate.formula,
+        score: candidate.score,
+        exact: candidate.exact,
+        sources: candidate.sources,
+        smiles: candidate.smiles,
+        inchiKey: candidate.inchiKey ?? '',
+      }))
+      return {
+        query: imagePath ? path.basename(imagePath) : `${path.basename(pdfPath)} p.${args?.page ?? 1}`,
+        candidates: mapped,
+        message: mapped.length === 0
+          ? '没有识别出结构；请换一张更紧、更高分辨率的裁剪图。'
+          : `识别出 ${mapped.length} 个候选。请人工核对，再用 SMILES:<smiles> 生成。`,
+      }
+    },
+  })
+
+  ctx.tools.register({
+    name: 'draw_reaction',
+    description:
+      'Draft a one-step ChemDraw reaction scheme from SMILES: places reactants and products, inserts a reaction arrow, conditions and optional yield, and saves .cdxml (optionally .cdx). This is a layout draft; stoichiometry and conditions still require a human check. Use recognize_image or known SMILES for the structures.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['reactants', 'products'],
+      properties: {
+        reactants: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 4,
+          items: { type: 'string' },
+          description: 'Reactant SMILES, left to right.',
+        },
+        products: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 2,
+          items: { type: 'string' },
+          description: 'Product SMILES, left to right.',
+        },
+        conditions: {
+          type: 'string',
+          description: 'Text above the arrow, for example "Pd(OAc)2, AgBF4, dioxane, 80 °C".',
+        },
+        yield_text: {
+          type: 'string',
+          description: 'Optional text below the arrow, for example "82% yield".',
+        },
+        name: {
+          type: 'string',
+          description: 'Base file name; default "reaction".',
+        },
+        output_dir: {
+          type: 'string',
+          description: 'Output directory; default "<working directory>\\chemdraw".',
+        },
+        also_cdx: {
+          type: 'boolean',
+          description: 'Also save the binary .cdx. Default false.',
+        },
+        overwrite: {
+          type: 'boolean',
+          description: 'Overwrite instead of adding a numeric suffix.',
+        },
+      },
+    },
+    output: {
+      schema: REACTION_OUTPUT,
+      render: (_args, value) => {
+        const lines = [
+          `反应式草稿已生成：${value.reaction.reactants.length} 个反应物 → ${value.reaction.products.length} 个产物`,
+          ...value.files.map((file) => `- ${file.path}（${file.format}，${formatBytes(file.bytes)}）`),
+          value.reaction.conditions ? `条件：${value.reaction.conditions}` : '',
+          value.reaction.yield ? `收率：${value.reaction.yield}` : '',
+          '注意：这是排版草稿，请核对箭头方向、条件、化学计量和产物。',
+        ]
+        return [{ type: 'text', text: lines.filter(Boolean).join('\n') }]
+      },
+    },
+    timeoutMs: 300_000,
+    isConcurrencySafe: () => false,
+    async execute(args, exec) {
+      const cwd = await sessionWorkingDirectory(ctx, exec)
+      return drawReaction({
+        reactants: args?.reactants,
+        products: args?.products,
+        conditions: args?.conditions,
+        yieldText: args?.yield_text,
+        name: args?.name,
+        cwd,
+        outputDir: args?.output_dir || defaults.outputDir,
+        alsoCdx: args?.also_cdx === undefined ? defaults.alsoCdx : args.also_cdx === true,
+        overwrite: args?.overwrite === true,
+        signal: exec.signal,
+      })
     },
   })
 

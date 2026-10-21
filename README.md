@@ -46,6 +46,31 @@ A logged-in SciFinder user can export the selected substance records and let the
 
 Supported export formats: `.sdf`, `.csv`, `.tsv`, `.txt`. SDF is read with RDKit and compared with the CDXML after ChemDraw writes it, so the structure does not depend on a name lookup.
 
+## Image recognition and reaction drafts
+
+`recognize_image` runs OSRA on a tight structure image, then validates every SMILES with RDKit:
+
+```text
+recognize_image(image_path="E:\\figs\\compound.png")
+recognize_image(pdf_path="E:\\paper.pdf", page=5, box=[100, 200, 360, 430])
+```
+
+This is for compounds with no printed IUPAC name. The output is a **candidate list**, not a verified identity: OSRA can misread stereochemistry, charges, isotopes and abbreviations. Abbreviated groups such as `PhthN`, `MQ` or `Boc` cannot be reconstructed from pixels; the tool refuses rather than inventing them. Confirm the candidate, then draw it with `draw_from_identifier(identifier="SMILES:<smiles>")`.
+
+`draw_reaction` drafts a one-step scheme from SMILES:
+
+```text
+draw_reaction(
+  reactants=["CCO"],
+  products=["CC=O"],
+  conditions="Pd(OAc)2, 80 °C",
+  yield_text="82%",
+  also_cdx=true
+)
+```
+
+It places structures, arrow, conditions and yield in one ChemDraw document. This is a layout draft: check arrow direction, stoichiometry, conditions and products before using it in a paper.
+
 ## Literature extraction
 
 `draw_from_paper` extracts a compound from a paper or its supporting information:
@@ -98,7 +123,13 @@ If the atom composition does not match, the generated files are deleted and the 
 
 4. Enable the `chemdraw-bridge` plugin row if it is not already active.
 
-The `vendor/venv` directory is intentionally not committed; `scripts/setup-python.ps1` creates it.
+For `recognize_image`, also install the small local OCR binary once:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup-osra.ps1
+```
+
+The `vendor/venv` and `vendor/osra` directories are intentionally not committed; the setup scripts create them.
 
 ## Requirements
 
@@ -126,6 +157,31 @@ Returns ranked candidates with CID, CAS, formula, source and match score. Show t
 | `limit` | Maximum candidates, 1–20; default 10. |
 
 For an SDF record, call `draw_from_identifier` with `SMILES:<smiles>`; for a CSV row that resolved to PubChem, `CID:<cid>` also works.
+
+`recognize_image`
+
+| Parameter | Meaning |
+| --- | --- |
+| `image_path` | Tight PNG/JPEG/TIFF crop of a structure. |
+| `pdf_path` | A PDF, used with `page` and optional `box` instead of `image_path`. |
+| `page` | PDF page, 1-based (default 1). |
+| `box` | Optional PDF crop `[x0,y0,x1,y1]` in points. |
+| `limit` | Maximum candidates, 1–8; default 5. |
+
+Returns OSRA candidates with formula and SMILES. This is not an identity proof; review before drawing.
+
+`draw_reaction`
+
+| Parameter | Meaning |
+| --- | --- |
+| `reactants` | 1–4 reactant SMILES, left to right. Required. |
+| `products` | 1–2 product SMILES. Required. |
+| `conditions` | Text above the arrow. |
+| `yield_text` | Optional text below the arrow. |
+| `name` | Base file name; default `reaction`. |
+| `also_cdx`, `overwrite` | Same meaning as above. |
+
+The reaction is a one-step layout draft; verify it before publication.
 
 `draw_from_identifier`
 

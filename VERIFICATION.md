@@ -113,6 +113,19 @@ used to exercise the path:
 - A live SciFinder export was not available in this environment; SDF is the
   recommended format because it carries the authoritative structure.
 
+## Image recognition and reaction drafts
+
+- `recognize_image` on a ChemDraw-rendered aspirin PNG returned one candidate,
+  `C9H8O4`, SMILES `CC(=O)Oc1ccccc1C(=O)O`; RDKit parsed it and computed the
+  formula.
+- `draw_reaction(reactants=["CCO"], products=["CC=O"], conditions="Pd(OAc)2, 80 °C", yield_text="82%")`
+  produced a one-step scheme with the arrow, conditions and yield; ChemDraw
+  reopened the generated CDXML and exported both CDX and PNG.
+
+Limitations: OSRA is a candidate generator. Abbreviated groups (`PhthN`, `MQ`,
+`Boc`) and low-resolution figures are not reconstructed; the operator must
+review the SMILES before drawing.
+
 ## Reproduce
 
 ```powershell
