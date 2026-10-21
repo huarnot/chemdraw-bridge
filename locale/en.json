@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "ChemDraw Bridge",
+    "description": "Bridges a CAS number, compound name, or a compound in a paper/SI PDF to an editable ChemDraw source file (.cdxml, optionally .cdx) on this computer."
+  }
+}

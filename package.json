@@ -1,0 +1,32 @@
+{
+  "name": "@local/dsh-plugin-chemdraw-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ChemDraw Bridge: generate native ChemDraw source files (.cdxml / .cdx) from a CAS number, compound name, or a compound in a paper/SI PDF.",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "lib/*.js",
+    "scripts/*.ps1",
+    "scripts/*.py",
+    "tools/cli.mjs",
+    "tools/verify-rdkit.py",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "README.zh.md",
+    "VERIFICATION.md",
+    "requirements.txt"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

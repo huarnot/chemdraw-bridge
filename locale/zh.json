@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "ChemDraw Bridge",
+    "description": "把 CAS 号、化合物名称或论文/SI 中的结构，桥接到本机可直接编辑的 ChemDraw 源文件（.cdxml，可选 .cdx）。"
+  }
+}
