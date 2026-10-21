@@ -1,0 +1,18 @@
+# Local Python environment (created by scripts/setup-python.ps1)
+vendor/venv/
+
+# Node
+node_modules/
+
+# Generated structures and downloaded papers
+chemdraw-samples/
+*.cdxml
+*.cdx
+*.meta.json
+
+# Local secrets / editor files
+.env
+*.local
+.vscode/
+.idea/
+Thumbs.db
