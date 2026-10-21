@@ -26,7 +26,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Standard drawing settings: Arial 9 pt labels, 0.4 cm bond length, 0.6 pt line
   width, 10 pt bond spacing and 1 pt margin.
 - Reaction schemes use compact spacing, smaller arrowheads, 9 pt Arial
-  conditions/yields and joined plus signs.
+  conditions/yields and joined plus signs. Their structures also use CoordGen
+  geometry for consistency with the single-structure layout.
 - README and Chinese manual now include installation, image recognition,
   reaction drafting and SciFinder export sections.
 
