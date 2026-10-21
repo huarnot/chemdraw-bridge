@@ -75,13 +75,40 @@ try {
   $doc = $app.Documents.Add()
   $doc.Activate()
 
+  # Keep reaction schemes compact and consistent with the structure output.
+  $stage = 'style'
+  try {
+    $doc.Settings.BondLength = 20
+    $doc.Settings.LabelFont = 3
+    $doc.Settings.LabelSize = 9
+    $doc.Settings.LineWidth = 0.6
+    $doc.Settings.BondSpacing = 10
+    $doc.Settings.MarginWidth = 1
+    $doc.Settings.CaptionFont = 3
+    $doc.Settings.CaptionSize = 9
+  } catch {
+    Write-Log ("could not apply some style settings: {0}" -f $_.Exception.Message)
+  }
+
   foreach ($item in $items) {
     $smiles = [string]$item.smiles
     if ([string]::IsNullOrWhiteSpace($smiles)) { throw 'An item has no SMILES.' }
+    $molPath = [string]$item.molPath
     $stage = 'paste'
-    Set-Clipboard -Value $smiles
-    Start-Sleep -Milliseconds 250
-    $doc.Paste()
+    if (-not [string]::IsNullOrWhiteSpace($molPath)) {
+      $stage = 'open-coordgen'
+      $tempDoc = $app.Documents.Open($molPath)
+      if ($tempDoc -eq $null) { throw 'ChemDraw could not open a CoordGen MOL.' }
+      $tempDoc.Objects.Select()
+      $tempDoc.Objects.Copy()
+      $tempDoc.Close(0)
+      $doc.Activate()
+      $doc.Paste()
+    } else {
+      Set-Clipboard -Value $smiles
+      Start-Sleep -Milliseconds 250
+      $doc.Paste()
+    }
     Start-Sleep -Milliseconds 350
 
     $stage = 'select'

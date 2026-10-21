@@ -95,6 +95,18 @@ draw_reaction(
 
 箭头、条件、收率会放进同一个 ChemDraw 文件；方向、化学计量和条件仍需人工核对。
 
+### 论文排版
+
+结构先用 RDKit CoordGen 生成紧凑的二维坐标，再由 ChemDraw 套统一格式：
+
+- Arial 9 pt 原子标签；
+- 0.4 cm（20 pt）键长；
+- 0.6 pt 线宽；
+- 10 pt 键间距、1 pt 边距；
+- 反应式箭头更紧凑，条件和收率 9 pt，加号连排。
+
+这些设置写进 CDXML，结构仍然可编辑，不是扁平图片。
+
 ### 输入规则
 
 1. **CAS 号最可靠**。插件会先算 CAS 校验位，校验位错误直接拒绝；再到 PubChem 查，并要求该 CAS 出现在对应记录的同义词里。
@@ -268,7 +280,7 @@ draw_from_paper(
 - `draw_reaction` 输出的是排版草稿，箭头方向、条件、化学计量和产物需要人工核对。
 - 有机金属配合物（如二茂铁）原子组成正确，但 ChemDraw 不会自动补金属–环配位键，需要手动加。
 - PubChem 没有 SMILES 的记录（某些聚合物、混合物、材料）无法生成。
-- 自动排版可直接用于论文，但个别大分子的环角、取代基方向可能还需要手动整理。
+- 结构排版用 RDKit CoordGen，再由 ChemDraw 套 Arial 9 pt、0.4 cm 键长、0.6 pt 线宽；个别极大分子仍可能需要手动整理。
 - 文献模式需要联网访问 OPSIN；不需要 API key。
 
 ---
@@ -307,7 +319,7 @@ node E:\ds\dsh-plugin-chemdraw-bridge\tools\cli.mjs "CID:2244" --name aspirin
 | `outputDir` | 默认输出目录 |
 | `alsoCdx` | 是否默认同时输出 `.cdx` |
 | `timeoutMs` | ChemDraw 转换超时，默认 120000 毫秒 |
-| `pythonPath` | 文献/ SciFinder 用的 Python；默认用 `vendor/venv`（先运行 `scripts/setup-python.ps1`） |
+| `pythonPath` | 结构排版、文献、SciFinder 用的 Python；默认用 `vendor/venv`（先运行 `scripts/setup-python.ps1`） |
 
 ---
 
@@ -330,7 +342,7 @@ node E:\ds\dsh-plugin-chemdraw-bridge\tools\cli.mjs "CID:2244" --name aspirin
 ## 11. 安装
 
 1. 把仓库克隆或下载到本地目录；
-2. 首次使用先运行 Python 环境脚本（`draw_from_paper` 和 `import_scifinder` 需要）：
+2. 首次使用先运行 Python 环境脚本（CoordGen 论文排版、`draw_from_paper` 和 `import_scifinder` 都需要）：
 
    ```powershell
    powershell -ExecutionPolicy Bypass -File scripts\setup-python.ps1
@@ -358,7 +370,7 @@ node E:\ds\dsh-plugin-chemdraw-bridge\tools\cli.mjs "CID:2244" --name aspirin
 - ChemDraw 已安装并激活（当前测试版本：ChemOffice 2022 / ChemDraw 22.0.0.22）；
 - 联网访问 PubChem、ChemicalBook；文献模式还需访问 OPSIN；
 - 不需要 API key；
-- 文献模式和 SciFinder 导入需要一个带 PyMuPDF + RDKit 的 Python 环境。首次使用先运行：
+- 结构排版、文献提取和 SciFinder 导入需要一个带 PyMuPDF + RDKit 的 Python 环境。首次使用先运行：
   ```powershell
   powershell -ExecutionPolicy Bypass -File scripts\setup-python.ps1
   ```
@@ -367,3 +379,7 @@ node E:\ds\dsh-plugin-chemdraw-bridge\tools\cli.mjs "CID:2244" --name aspirin
   ```powershell
   powershell -ExecutionPolicy Bypass -File scripts\setup-osra.ps1
   ```
+
+## 13. 更新日志
+
+见 [CHANGELOG.md](CHANGELOG.md)。1.1.0 加入了 CoordGen 论文级排版、识图、反应式草稿和 SciFinder 导出读取。

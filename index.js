@@ -301,6 +301,7 @@ export async function generateStructure(options) {
       alsoCdx: options.alsoCdx,
       overwrite: options.overwrite,
       timeoutMs: options.timeoutMs,
+      pythonPath: options.pythonPath,
       signal: options.signal,
       metadataExtra: { importedFrom: 'SMILES' },
     })
@@ -357,6 +358,7 @@ export async function generateStructure(options) {
       smiles: compound.smiles,
       outCdxml: cdxmlPath,
       outCdx: cdxPath,
+      pythonPath: options.pythonPath,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
     }))
@@ -392,6 +394,7 @@ export async function generateStructure(options) {
     generator: '@local/dsh-plugin-chemdraw-bridge',
     generatedAt: new Date().toISOString(),
     chemDrawVersion: result.version,
+    layout: result.layout,
     source: compound.pubchemUrl,
     compound: {
       cid: compound.cid,
@@ -529,6 +532,7 @@ export function apply(ctx, config) {
         alsoCdx: args?.also_cdx === undefined ? defaults.alsoCdx : args.also_cdx === true,
         overwrite: args?.overwrite === true,
         allowFuzzy: false,
+        pythonPath: defaults.pythonPath,
         timeoutMs: defaults.timeoutMs,
         signal: exec.signal,
       })
@@ -850,6 +854,7 @@ export function apply(ctx, config) {
         outputDir: args?.output_dir || defaults.outputDir,
         alsoCdx: args?.also_cdx === undefined ? defaults.alsoCdx : args.also_cdx === true,
         overwrite: args?.overwrite === true,
+        pythonPath: defaults.pythonPath,
         signal: exec.signal,
       })
     },
@@ -927,6 +932,7 @@ export function apply(ctx, config) {
 
       const result = await generateFromSmiles({
         smiles: literature.smiles,
+        pythonPath: defaults.pythonPath,
         compound: {
           cid: 0,
           title: literature.label || literature.name,

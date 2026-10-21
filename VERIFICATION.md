@@ -126,6 +126,19 @@ Limitations: OSRA is a candidate generator. Abbreviated groups (`PhthN`, `MQ`,
 `Boc`) and low-resolution figures are not reconstructed; the operator must
 review the SMILES before drawing.
 
+## Publication layout
+
+The layout pipeline now uses RDKit CoordGen, then ChemDraw applies Arial 9 pt
+labels, 20 pt (0.4 cm) bonds, 0.6 pt lines and compact reaction spacing.
+
+- 3a: old clipboard layout was 719 x 1293 px (tall/narrow); CoordGen layout is
+  1181 x 765 px, with the phthalimide, β-lactam and quinoline units spread
+  horizontally.
+- Aspirin, cholesterol and the 3a/5a/6a samples were regenerated with the new
+  settings; CDXML atom counts and InChIKeys are unchanged.
+- The chiral flag is written into the CoordGen MOL so ChemDraw does not add
+  `&1` enhanced-stereo labels.
+
 ## Reproduce
 
 ```powershell
@@ -137,4 +150,4 @@ python -m pip install rdkit
 python tools\verify-rdkit.py <mol-dir> <meta-dir>
 ```
 
-RDKit is only for this verification; the plugin itself needs neither RDKit nor Python.
+RDKit is used both for CoordGen layout and this verification; `scripts/setup-python.ps1` installs PyMuPDF and RDKit.

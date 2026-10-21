@@ -71,6 +71,21 @@ draw_reaction(
 
 It places structures, arrow, conditions and yield in one ChemDraw document. This is a layout draft: check arrow direction, stoichiometry, conditions and products before using it in a paper.
 
+## Publication layout
+
+Structures are laid out with RDKit CoordGen, which avoids ChemDraw's tall
+clipboard layout for large molecules. ChemDraw then applies the journal-style
+defaults used by the plugin:
+
+- Arial 9 pt atom labels;
+- 0.4 cm (20 pt) bond length;
+- 0.6 pt line width;
+- 10 pt bond spacing and 1 pt margin;
+- compact reaction arrows, 9 pt conditions/yields and joined plus signs.
+
+The settings are written into the CDXML, so the file stays editable rather than
+being a flattened image.
+
 ## Literature extraction
 
 `draw_from_paper` extracts a compound from a paper or its supporting information:
@@ -109,7 +124,7 @@ If the atom composition does not match, the generated files are deleted and the 
 ## Install
 
 1. Clone or download this repository to a local folder.
-2. Run the Python setup once (needed by `draw_from_paper` and `import_scifinder`):
+2. Run the Python setup once (used by the CoordGen publication layout, `draw_from_paper` and `import_scifinder`):
 
    ```powershell
    powershell -ExecutionPolicy Bypass -File scripts\setup-python.ps1
@@ -205,7 +220,7 @@ Config keys in `cordis.patch.yml` are `outputDir`, `alsoCdx`, `timeoutMs` and `p
 | `local_pdf` | Local paper/SI PDF. Used first; needed when the DOI PDF is blocked. |
 | `output_dir`, `file_name`, `also_cdx`, `overwrite` | Same meaning as above. |
 
-The literature and SciFinder import paths need a Python environment with PyMuPDF and RDKit. On a fresh clone, run this once:
+The publication layout, literature extraction and SciFinder import paths need a Python environment with PyMuPDF and RDKit. On a fresh clone, run this once:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\setup-python.ps1
@@ -228,19 +243,27 @@ node tools/cli.mjs "CID:2244" --name aspirin
 - `lib/pubchem.js` — PUG REST client and strict identifier resolution.
 - `lib/literature.js` — PDF text, label/name extraction, OPSIN and RDKit checks.
 - `lib/generate.js` — shared SMILES → ChemDraw → CDXML validation step.
+- `lib/coordgen.js` — RDKit CoordGen 2D layout; gives ChemDraw a compact, publication-style starting geometry.
+- `lib/vision.js` — OSRA image recognition with RDKit validation.
+- `lib/reaction.js` — one-step reaction-scheme layout and arrow/caption assembly.
 - `scripts/pdf_tool.py` — PyMuPDF text extraction and RDKit formula/InChIKey validation.
 - `lib/smiles.js` — small atom counter used only for validation.
 - `lib/cdxml.js` — CDXML reader and element-composition comparison.
 - `lib/chemdraw.js` — PowerShell/COM bridge with serialization, timeout and output checks. ChemDraw's `SaveAs` is unreliable with non-ASCII paths, so it always writes into an ASCII staging directory and Node moves the finished files to the requested path.
-- `scripts/convert.ps1` — opens a hidden ChemDraw document, pastes the SMILES, saves CDXML/CDX, restores the clipboard.
+- `scripts/convert.ps1` — opens a hidden ChemDraw document from a CoordGen MOL (or pastes SMILES as a fallback), applies publication-style settings, and saves CDXML/CDX.
 
 Only one conversion runs at a time because ChemDraw automation and the clipboard are process-global. The tool is marked non-concurrency-safe.
 
 ## Limitations
 
 - Structures come from PubChem's canonical isomeric SMILES (identifier tool) or from the paper's IUPAC name via OPSIN (literature tool). A record without a SMILES, and a paper without an IUPAC name, cannot be drawn reliably.
-- Image-only figures are rejected rather than guessed. Abbreviated schemes (PhthN, MQ, Boc labels) cannot be reconstructed from pixels alone.
+- Image-only figures can be sent through `recognize_image`, but the result is a candidate and must be reviewed. Abbreviated schemes (PhthN, MQ, Boc labels) cannot be reconstructed from pixels alone.
+- `recognize_image` and `draw_reaction` are drafts: check stereochemistry, charges, arrow direction, conditions and stoichiometry before publication.
 - Organometallic coordination bonds are not inferred by ChemDraw's SMILES paste. Ferrocene, for example, arrives as two cyclopentadienyl rings plus a separate Fe atom; add the dative bonds manually if the figure needs them.
-- The drawing is ChemDraw's automatic layout of that SMILES. It is chemically correct and editable, but a human may still prefer to clean up ring angles or add publication styling.
+- Large structures are laid out with RDKit CoordGen, then styled by ChemDraw. A human may still adjust a crowded substituent or a very long chain.
 - If ChemDraw is already open, the plugin attaches to that instance and closes only the document it created. It does not quit the user's session.
 - A name that is ambiguous in PubChem is rejected with candidate CIDs instead of silently choosing one.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the release history, including the 1.1.0 publication-layout, image-recognition and reaction-draft changes.

@@ -13,6 +13,7 @@ import sys
 
 import pymupdf
 from rdkit import Chem, RDLogger
+from rdkit.Chem import rdCoordGen
 from rdkit.Chem import rdMolDescriptors
 from rdkit.Chem import inchi
 
@@ -45,6 +46,16 @@ def validate(smiles, out_path):
         "canonicalSmiles": Chem.MolToSmiles(molecule),
         "heavyAtoms": molecule.GetNumHeavyAtoms(),
     })
+
+
+def coordgen(smiles, out_path):
+    molecule = Chem.MolFromSmiles(smiles)
+    if molecule is None:
+        raise SystemExit("RDKit could not parse the SMILES")
+    rdCoordGen.AddCoords(molecule)
+    # Absolute stereo avoids ChemDraw's "&1" enhanced-stereo labels.
+    molecule.SetProp("_MolFileChiralFlag", "1")
+    Chem.MolToMolFile(molecule, out_path, kekulize=True)
 
 
 def render(pdf_path, page_number, out_path, dpi):
@@ -118,6 +129,10 @@ def main():
     validate_parser.add_argument("smiles")
     validate_parser.add_argument("out")
 
+    coordgen_parser = subparsers.add_parser("coordgen")
+    coordgen_parser.add_argument("smiles")
+    coordgen_parser.add_argument("out")
+
     render_parser = subparsers.add_parser("render")
     render_parser.add_argument("pdf")
     render_parser.add_argument("page")
@@ -141,6 +156,8 @@ def main():
             extract_text(args.pdf, args.out)
         elif args.command == "validate":
             validate(args.smiles, args.out)
+        elif args.command == "coordgen":
+            coordgen(args.smiles, args.out)
         elif args.command == "render":
             render(args.pdf, args.page, args.out, args.dpi)
         elif args.command == "sdf":

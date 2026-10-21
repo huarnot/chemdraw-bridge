@@ -48,16 +48,21 @@ try {
   Write-Log 'reading request'
   $request = Get-Content -LiteralPath $RequestFile -Raw -Encoding UTF8 | ConvertFrom-Json
   $smiles = [string]$request.smiles
+  $molPath = [string]$request.molPath
   $outCdxml = [string]$request.outCdxml
   $outCdx = [string]$request.outCdx
-  if ([string]::IsNullOrWhiteSpace($smiles)) { throw 'The request contains no SMILES.' }
+  if ([string]::IsNullOrWhiteSpace($molPath) -and [string]::IsNullOrWhiteSpace($smiles)) {
+    throw 'The request contains neither a CoordGen MOL nor a SMILES string.'
+  }
 
   $stage = 'clipboard-backup'
-  try {
-    $previousClipboard = Get-Clipboard -Raw -ErrorAction Stop
-    $hadClipboard = $true
-  } catch {
-    $hadClipboard = $false
+  if ([string]::IsNullOrWhiteSpace($molPath)) {
+    try {
+      $previousClipboard = Get-Clipboard -Raw -ErrorAction Stop
+      $hadClipboard = $true
+    } catch {
+      $hadClipboard = $false
+    }
   }
 
   $stage = 'com-create'
@@ -88,13 +93,38 @@ try {
   }
 
   $stage = 'document-add'
-  $doc = $app.Documents.Add()
+  if (-not [string]::IsNullOrWhiteSpace($molPath)) {
+    $stage = 'open-coordgen'
+    if (-not (Test-Path -LiteralPath $molPath)) { throw 'The CoordGen MOL file is missing.' }
+    $doc = $app.Documents.Open($molPath)
+    if ($doc -eq $null) { throw 'ChemDraw could not open the CoordGen MOL file.' }
+  } else {
+    $doc = $app.Documents.Add()
+  }
   $doc.Activate()
 
-  $stage = 'paste'
-  Set-Clipboard -Value $smiles
-  Start-Sleep -Milliseconds 200
-  $doc.Paste()
+  # Publication-style defaults: compact Arial labels, 0.4 cm bonds and a thin
+  # line width. These values match the layout used by most Q1 chemistry papers.
+  $stage = 'style'
+  try {
+    $doc.Settings.BondLength = 20
+    $doc.Settings.LabelFont = 3
+    $doc.Settings.LabelSize = 9
+    $doc.Settings.LineWidth = 0.6
+    $doc.Settings.BondSpacing = 10
+    $doc.Settings.MarginWidth = 1
+    $doc.Settings.CaptionFont = 3
+    $doc.Settings.CaptionSize = 9
+  } catch {
+    Write-Log ("could not apply some style settings: {0}" -f $_.Exception.Message)
+  }
+
+  if ([string]::IsNullOrWhiteSpace($molPath)) {
+    $stage = 'paste'
+    Set-Clipboard -Value $smiles
+    Start-Sleep -Milliseconds 200
+    $doc.Paste()
+  }
 
   $stage = 'wait-for-atoms'
   $deadline = (Get-Date).AddSeconds(20)
