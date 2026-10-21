@@ -299,7 +299,26 @@ node E:\ds\dsh-plugin-chemdraw-bridge\tools\cli.mjs "CID:2244" --name aspirin
 
 ---
 
-## 11. 环境要求
+## 11. 安装
+
+1. 把仓库克隆或下载到本地目录；
+2. 首次使用先运行 Python 环境脚本（`draw_from_paper` 和 `import_scifinder` 需要）：
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\setup-python.ps1
+   ```
+
+3. 在 DeepSeek Harness 里把这个目录作为 bundle 安装：
+
+   ```text
+   plugin_manager install_bundle(target="E:\\path\\to\\chemdraw-bridge")
+   ```
+
+4. 确认 `chemdraw-bridge` 插件行已启用。
+
+`vendor/venv` 不会提交到仓库，由 `scripts/setup-python.ps1` 自动创建。
+
+## 12. 环境要求
 
 - Windows；
 - ChemDraw 已安装并激活（当前测试版本：ChemOffice 2022 / ChemDraw 22.0.0.22）；
