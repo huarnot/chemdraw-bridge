@@ -81,6 +81,25 @@ Before returning, the plugin:
 
 If the atom composition does not match, the generated files are deleted and the call fails.
 
+## Install
+
+1. Clone or download this repository to a local folder.
+2. Run the Python setup once (needed by `draw_from_paper` and `import_scifinder`):
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\setup-python.ps1
+   ```
+
+3. In DeepSeek Harness, install that folder as a bundle:
+
+   ```text
+   plugin_manager install_bundle(target="E:\\path\\to\\chemdraw-bridge")
+   ```
+
+4. Enable the `chemdraw-bridge` plugin row if it is not already active.
+
+The `vendor/venv` directory is intentionally not committed; `scripts/setup-python.ps1` creates it.
+
 ## Requirements
 
 - Windows with ChemDraw installed and activated (tested with ChemOffice 2022 / ChemDraw 22.0.0.22).
