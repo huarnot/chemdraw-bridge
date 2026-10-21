@@ -77,9 +77,12 @@ SciFinder 的网页 API 需要 OAuth/ELN 授权，返回的是 SciFinder 网页�
 ```text
 recognize_image(image_path="E:\\figs\\compound.png")
 recognize_image(pdf_path="E:\\paper.pdf", page=5, box=[100, 200, 360, 430])
+recognize_image(image_path="E:\\figs\\compound.png", expected_formula="C20H15N3O4")
 ```
 
 OSRA 识别后用 RDKit 校验，返回 SMILES/分子式候选。**这是候选，不是已确认的身份**：手性、电荷、同位素和缩写基团都可能识别错；`PhthN`、`MQ`、`Boc` 这类缩写无法从像素还原，工具会拒绝而不是猜。确认后再用 `draw_from_identifier(identifier="SMILES:<smiles>")` 生成。
+
+如果知道分子式，传入 `expected_formula` 会做硬校验；识图结果分子式不符时直接拒绝，避免漏画/多画一个碳。
 
 有一组确定的反应物/产物 SMILES 时，可以画一步反应式草稿：
 
@@ -87,13 +90,13 @@ OSRA 识别后用 RDKit 校验，返回 SMILES/分子式候选。**这是候选�
 draw_reaction(
   reactants=["CCO"],
   products=["CC=O"],
-  conditions="Pd(OAc)2, 80 °C",
+  conditions="10 mol% Pd(OAc)2\n1.5 equiv AgBF4\nt-BuOH/DCE, 75 °C, 24h",
   yield_text="82%",
   also_cdx=true
 )
 ```
 
-箭头、条件、收率会放进同一个 ChemDraw 文件；方向、化学计量和条件仍需人工核对。
+`conditions` 支持用 `\n` 分成多行，每行会居中放在箭头上方。
 
 ### 论文排版
 

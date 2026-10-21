@@ -139,6 +139,24 @@ labels, 20 pt (0.4 cm) bonds, 0.6 pt lines and compact reaction spacing.
 - The chiral flag is written into the CoordGen MOL so ChemDraw does not add
   `&1` enhanced-stereo labels.
 
+## Reaction caption centering
+
+ChemDraw CDXML captions use `p` as the left edge, not the center. The first
+version placed conditions at the arrow center, so the text extended to the
+right. The current writer subtracts half of the estimated text width and
+supports newline-separated condition lines; the sample conditions and yield are
+centered above/below the arrow.
+
+## Fig. 2 correction
+
+The previous Fig. 2 interpretation omitted the alpha-CH2 next to the carbonyl.
+The corrected substrate is `PhthN-CH2-CO-NH-MQ` (C20H15N3O4) and the product is
+`PhthN-CH(Ar)-CO-NH-MQ` (C26H19N3O4 for Ar = Ph). It is saved as
+`E:\ds\chemdraw\Fig2_row1_corrected.cdxml/.cdx/.png`.
+
+`recognize_image` now accepts `expected_formula`; a candidate whose formula
+differs is rejected, which catches a missing or extra carbon before drawing.
+
 ## Reproduce
 
 ```powershell

@@ -3,6 +3,28 @@
 All notable changes to ChemDraw Bridge are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.1] - 2026-10-21
+
+### Fixed
+
+- Reaction captions were placed with `p` treated as a center, but ChemDraw's
+  caption `p` is the left edge. Conditions and yields are now shifted by half
+  their estimated text width, so they sit centered above/below the arrow.
+- `draw_reaction` now measures each structure in ChemDraw before the final
+  layout. Large substrates/products no longer collide with the arrow or the
+  conditions; multiple condition lines are each centered above the arrow.
+- `recognize_image` accepts an optional `expected_formula` hard check. A
+  candidate with a missing or extra carbon is rejected instead of being drawn.
+  This was added after a Fig. 2 interpretation missed the α-CH2 next to the
+  carbonyl; the corrected substrate is C20H15N3O4 and the product is
+  C26H19N3O4.
+
+### Changed
+
+- The README/Chinese manual now recommend passing `expected_formula` when the
+  formula is known, and explicitly warn that PhthN/MQ/Boc abbreviations are not
+  an OCSR use case.
+
 ## [1.1.0] - 2026-10-21
 
 ### Added

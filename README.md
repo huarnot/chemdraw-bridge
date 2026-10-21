@@ -181,6 +181,7 @@ For an SDF record, call `draw_from_identifier` with `SMILES:<smiles>`; for a CSV
 | `pdf_path` | A PDF, used with `page` and optional `box` instead of `image_path`. |
 | `page` | PDF page, 1-based (default 1). |
 | `box` | Optional PDF crop `[x0,y0,x1,y1]` in points. |
+| `expected_formula` | Optional hard check, e.g. `C20H15N3O4`; candidates with a different formula are rejected. |
 | `limit` | Maximum candidates, 1–8; default 5. |
 
 Returns OSRA candidates with formula and SMILES. This is not an identity proof; review before drawing.
@@ -191,7 +192,7 @@ Returns OSRA candidates with formula and SMILES. This is not an identity proof; 
 | --- | --- |
 | `reactants` | 1–4 reactant SMILES, left to right. Required. |
 | `products` | 1–2 product SMILES. Required. |
-| `conditions` | Text above the arrow. |
+| `conditions` | Text above the arrow; use `\n` for multiple lines (each line is centered). |
 | `yield_text` | Optional text below the arrow. |
 | `name` | Base file name; default `reaction`. |
 | `also_cdx`, `overwrite` | Same meaning as above. |

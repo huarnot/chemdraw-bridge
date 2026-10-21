@@ -718,6 +718,10 @@ export function apply(ctx, config) {
           items: { type: 'number' },
           description: 'Optional PDF crop box [x0,y0,x1,y1] in PDF points.',
         },
+        expected_formula: {
+          type: 'string',
+          description: 'Optional molecular formula for a hard check, e.g. "C20H15N3O4". Candidates with a different formula are rejected, which catches a missing or extra carbon.',
+        },
         limit: {
           type: 'integer',
           minimum: 1,
@@ -749,7 +753,7 @@ export function apply(ctx, config) {
       const pdfPath = String(args?.pdf_path ?? '').trim()
       if (!imagePath && !pdfPath) throw new Error('请提供 image_path，或 pdf_path + page + box。')
       const limit = Number.isFinite(args?.limit) ? Math.min(8, Math.max(1, Math.round(args.limit))) : 5
-      const candidates = await recognizeImage({
+      let candidates = await recognizeImage({
         imagePath: imagePath || undefined,
         pdfPath: pdfPath || undefined,
         page: Number.isFinite(args?.page) ? Math.round(args.page) : 1,
@@ -757,6 +761,14 @@ export function apply(ctx, config) {
         pythonPath: defaults.pythonPath,
         signal: exec.signal,
       })
+      const expectedFormula = String(args?.expected_formula ?? '').replace(/\s+/g, '')
+      if (expectedFormula) {
+        const recognizedFormulas = [...new Set(candidates.map((candidate) => candidate.formula))].join(', ')
+        candidates = candidates.filter((candidate) => String(candidate.formula).replace(/\s+/g, '') === expectedFormula)
+        if (candidates.length === 0) {
+          throw new Error(`识图结果的分子式（${recognizedFormulas}）与预期 ${expectedFormula} 不一致，可能漏画/多画了碳或其他原子。请换更清晰的裁剪图，或人工核对。`)
+        }
+      }
       const mapped = candidates.slice(0, limit).map((candidate) => ({
         cid: candidate.cid,
         name: candidate.name,

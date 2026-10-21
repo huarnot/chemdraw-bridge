@@ -12,6 +12,7 @@ $doc = $null
 $startedHere = $false
 $callStart = Get-Date
 $ownedIds = @()
+$placements = @()
 $hadClipboard = $false
 $previousClipboard = ''
 
@@ -121,6 +122,11 @@ try {
     $dx = [double]$item.x - (($left + $right) / 2)
     $dy = [double]$item.y - (($top + $bottom) / 2)
     $selection.Move($dx, $dy)
+    $placements += [ordered]@{
+      smiles = $smiles
+      width = [double]$selection.Width
+      height = [double]$selection.Height
+    }
     Write-Log ("placed {0} at {1},{2}" -f $smiles, $item.x, $item.y)
   }
 
@@ -132,6 +138,7 @@ try {
     ok = $true
     stage = 'done'
     startedHere = $startedHere
+    placements = $placements
     log = $log
   }
 } catch {
